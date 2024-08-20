@@ -1,3 +1,3 @@
 module github.com/wolveix/gravityforms-go
 
-go 1.22.6
+go 1.22
