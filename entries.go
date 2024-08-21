@@ -108,9 +108,15 @@ func (e *Entry) UnmarshalJSON(data []byte) error {
 func (s *Service) CreateEntry(formID int, entry *Entry) error {
 	entry.FormID = strconv.Itoa(formID)
 
-	if _, err := s.makeRequest(http.MethodPost, "entries", &entry, nil); err != nil {
+	response := struct {
+		ID int `json:"id"`
+	}{}
+
+	if _, err := s.makeRequest(http.MethodPost, "entries", &entry, &response); err != nil {
 		return err
 	}
+
+	entry.ID = response.ID
 
 	return nil
 }
