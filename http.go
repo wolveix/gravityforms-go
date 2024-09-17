@@ -25,7 +25,7 @@ type (
 	}
 )
 
-// makeRequest is the underlying function for HTTP requests. It handles debugging statements, and simple error handling
+// execRequest is the underlying function for HTTP requests. It handles debugging statements, and simple error handling
 func (s *Service) execRequest(req *http.Request) ([]byte, error) {
 	debug := httpDebug{
 		Endpoint: req.URL.Path,
@@ -67,6 +67,7 @@ func (s *Service) execRequest(req *http.Request) ([]byte, error) {
 	return responseBytes, nil
 }
 
+// makeRequest is called by internal functions only. It handles the common HTTP request requirements for the API.
 func (s *Service) makeRequest(method string, endpoint string, body any, object any) ([]byte, error) {
 	var bodyReader io.Reader
 	if body != nil {
