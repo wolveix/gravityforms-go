@@ -105,6 +105,7 @@ func (e *Entry) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// CreateEntry creates the given entry within Gravity Forms.
 func (s *Service) CreateEntry(formID int, entry *Entry) error {
 	entry.FormID = strconv.Itoa(formID)
 
@@ -121,27 +122,13 @@ func (s *Service) CreateEntry(formID int, entry *Entry) error {
 	return nil
 }
 
+// GetEntries called GetEntriesByFormID with 0 as the given form ID.
 func (s *Service) GetEntries() ([]*Entry, error) {
-	obj := struct {
-		Entries []*Entry `json:"entries"`
-	}{}
-
-	if _, err := s.makeRequest(http.MethodGet, "forms/0/entries", nil, &obj); err != nil {
-		return nil, err
-	}
-
-	if len(obj.Entries) == 0 {
-		return nil, errors.New("no entries found")
-	}
-
-	return obj.Entries, nil
+	return s.GetEntriesByFormID(0)
 }
 
+// GetEntriesByFormID returns all entries for the given form ID, utilizing Gravity Forms' pagination.
 func (s *Service) GetEntriesByFormID(formID int) ([]*Entry, error) {
-	if formID == 0 {
-		return nil, errors.New("missing form id")
-	}
-
 	var entries []*Entry
 	currentPage := 1
 	pageSize := 100
@@ -186,6 +173,7 @@ func (s *Service) GetEntryByID(id int) (*Entry, error) {
 	return entry, nil
 }
 
+// UpdateEntry updates the given entry within Gravity Forms.
 func (s *Service) UpdateEntry(id int, entry *Entry) error {
 	if id == 0 {
 		return errors.New("missing entry id")
