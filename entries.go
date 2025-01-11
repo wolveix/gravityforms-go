@@ -80,7 +80,7 @@ func (e *Entry) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	fields := make(map[string]string)
+	var fields map[string]interface{}
 	if err := json.Unmarshal(data, &fields); err != nil {
 		return err
 	}
@@ -88,20 +88,45 @@ func (e *Entry) UnmarshalJSON(data []byte) error {
 	for key, value := range fields {
 		switch key {
 		case "id":
-			id, err := strconv.ParseInt(value, 10, 64)
-			if err == nil {
-				alias.ID = int(id)
+			// Handle ID field specifically.
+			if str, ok := value.(string); ok {
+				id, err := strconv.ParseInt(str, 10, 64)
+				if err == nil {
+					alias.ID = int(id)
+				}
+			} else if num, ok := value.(float64); ok {
+				alias.ID = int(num)
 			}
-		case "form_id", "post_id", "date_created", "date_updated", "is_fulfilled", "is_starred", "is_read", "ip",
-			"source_url", "user_agent", "currency", "created_by", "status", "payment_amount", "payment_date",
-			"payment_status", "transaction_id", "transaction_type":
+		case "form_id", "post_id", "date_created", "date_updated", "is_fulfilled", "is_starred",
+			"is_read", "ip", "source_url", "user_agent", "currency", "created_by", "status",
+			"payment_amount", "payment_date", "payment_status", "transaction_id", "transaction_type":
+			// Skip known fields.
+			continue
 		default:
-			alias.Fields[key] = value
+			// Convert value to string based on type
+			switch v := value.(type) {
+			case string:
+				alias.Fields[key] = v
+			case bool:
+				alias.Fields[key] = strconv.FormatBool(v)
+			case float64:
+				alias.Fields[key] = strconv.FormatFloat(v, 'f', -1, 64)
+			case int:
+				alias.Fields[key] = strconv.Itoa(v)
+			case nil:
+				alias.Fields[key] = ""
+			default:
+				// For any other type, try to JSON marshal it to string.
+				if b, err := json.Marshal(v); err == nil {
+					alias.Fields[key] = string(b)
+				} else {
+					alias.Fields[key] = fmt.Sprintf("%v", v)
+				}
+			}
 		}
 	}
 
 	*e = Entry(alias)
-
 	return nil
 }
 
@@ -118,6 +143,19 @@ func (s *Service) CreateEntry(formID int, entry *Entry) error {
 	}
 
 	entry.ID = response.ID
+
+	return nil
+}
+
+// DeleteEntry deletes the given entry within Gravity Forms
+func (s *Service) DeleteEntry(id int) error {
+	if id == 0 {
+		return errors.New("missing entry id")
+	}
+
+	if _, err := s.makeRequest(http.MethodDelete, "entries/"+strconv.Itoa(id), nil, nil); err != nil {
+		return err
+	}
 
 	return nil
 }
